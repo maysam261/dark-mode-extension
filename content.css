@@ -17,10 +17,6 @@
 }
 
 /* اگه دارک مود فعاله، نوتیف رو دوباره معکوس کن تا درست دیده بشه */
-html.dm-active #dm-native-notification {
-  filter: invert(1) hue-rotate(180deg) brightness(100%) !important;
-}
-
 #dm-native-notification .dm-notif-content {
   display: flex !important;
   align-items: center !important;
