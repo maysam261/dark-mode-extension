@@ -1,9 +1,11 @@
-// بررسی می‌کنه که سایت قبلاً دارک مود داشته یا نه
+// ============================================
+// تشخیص دارک مود نیتیو در سایت
+// ============================================
 function siteAlreadyHasDarkMode() {
   const html = document.documentElement;
   const body = document.body;
 
-  // بررسی color-scheme
+  // بررسی color-scheme روی html یا body
   const htmlScheme = getComputedStyle(html).colorScheme || "";
   const bodyScheme = body ? getComputedStyle(body).colorScheme || "" : "";
   if (htmlScheme.includes("dark") || bodyScheme.includes("dark")) return true;
@@ -15,33 +17,101 @@ function siteAlreadyHasDarkMode() {
     if (rgb) {
       const [r, g, b] = rgb.map(Number);
       const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-      if (luminance < 0.3) return true; // پس‌زمینه تیره
+      if (luminance < 0.3) return true;
     }
   }
 
-  // بررسی وجود تگ meta color-scheme
+  // بررسی تگ meta color-scheme
   const meta = document.querySelector('meta[name="color-scheme"]');
   if (meta && meta.content.includes("dark")) return true;
+
+  // بررسی media query prefers-color-scheme
+  try {
+    if (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) {
+      // این فقط می‌گه سیستم کاربر دارکه، نه اینکه سایت دارک مود داره
+      // ولی اگه سایت به این کوئری پاسخ بده، یعنی دارک مود داره
+      // این رو به عنوان یه سیگنال ضعیف در نظر می‌گیریم
+      // return true; // غیرفعاله چون ممکنه اشتباه باشه
+    }
+  } catch (e) {}
 
   return false;
 }
 
+// ============================================
+// نمایش نوتیفیکیشن داخل صفحه
+// ============================================
+function showNativeDarkModeNotification() {
+  // اگه قبلاً نمایش داده شده، دوباره نشون نده
+  if (document.getElementById("dm-native-notification")) return;
+  if (sessionStorage.getItem("dm-native-notified") === "true") return;
+
+  const notification = document.createElement("div");
+  notification.id = "dm-native-notification";
+  notification.innerHTML = `
+    <div class="dm-notif-content">
+      <span class="dm-notif-icon">💡</span>
+      <div class="dm-notif-text">
+        <strong>این سایت دارک مود داخلی داره!</strong>
+        <span>می‌تونی از تنظیمات خود سایت هم استفاده کنی.</span>
+      </div>
+      <button class="dm-notif-close" title="بستن">✕</button>
+    </div>
+  `;
+
+  document.body.appendChild(notification);
+
+  // دکمه بستن
+  notification.querySelector(".dm-notif-close").addEventListener("click", () => {
+    notification.classList.add("dm-notif-hide");
+    setTimeout(() => notification.remove(), 300);
+  });
+
+  // auto-dismiss بعد از ۶ ثانیه
+  setTimeout(() => {
+    if (document.getElementById("dm-native-notification")) {
+      notification.classList.add("dm-notif-hide");
+      setTimeout(() => notification.remove(), 300);
+    }
+  }, 6000);
+
+  // ذخیره تو session که تو همین تب دوباره نشون نده
+  sessionStorage.setItem("dm-native-notified", "true");
+}
+
+// ============================================
 // اعمال/حذف دارک مود
-function applyDarkMode(enabled, intensity = 100, sepia = 0) {
+// ============================================
+function applyDarkMode(enabled, intensity = 100, sepia = 0, showNotification = true) {
   const html = document.documentElement;
 
-  if (enabled && !siteAlreadyHasDarkMode()) {
+  if (enabled) {
     html.classList.add("dm-active");
     html.style.setProperty("--dm-intensity", intensity + "%");
     html.style.setProperty("--dm-sepia", sepia + "%");
+
+    // اگه سایت دارک مود نیتیو داره، نوتیف بده
+    if (showNotification && siteAlreadyHasDarkMode()) {
+      // صبر کن تا body آماده بشه
+      if (document.body) {
+        showNativeDarkModeNotification();
+      } else {
+        document.addEventListener("DOMContentLoaded", showNativeDarkModeNotification);
+      }
+    }
   } else {
     html.classList.remove("dm-active");
     html.style.removeProperty("--dm-intensity");
     html.style.removeProperty("--dm-sepia");
+    // اگه نوتیف باز بود، حذفش کن
+    const notif = document.getElementById("dm-native-notification");
+    if (notif) notif.remove();
   }
 }
 
+// ============================================
 // خواندن تنظیمات از storage
+// ============================================
 function loadSettings() {
   chrome.storage.sync.get(
     { enabled: false, intensity: 100, sepia: 0, whitelist: [] },
@@ -54,40 +124,19 @@ function loadSettings() {
         return;
       }
 
-      applyDarkMode(settings.enabled, settings.intensity, settings.sepia);
+      applyDarkMode(settings.enabled, settings.intensity, settings.sepia, true);
     }
   );
 }
 
-// فقط یک بار ست کردن listener
+// ============================================
+// فقط یک بار listener ست کن
+// ============================================
 if (!window.__darkModeListenerAttached) {
   window.__darkModeListenerAttached = true;
 
-  chrome.storage.onChanged.addListener((changes) => {
+  chrome.storage.onChanged.addListener(() => {
     loadSettings();
-  });
-
-  // هندل کردن صفحاتی که داینامیک لود می‌شن
-  const observer = new MutationObserver(() => {
-    // اگه کلاس حذف شده باشه دوباره اعمال کن
-    chrome.storage.sync.get(
-      { enabled: false, whitelist: [] },
-      (settings) => {
-        if (
-          settings.enabled &&
-          !settings.whitelist.includes(location.hostname) &&
-          !document.documentElement.classList.contains("dm-active") &&
-          !siteAlreadyHasDarkMode()
-        ) {
-          applyDarkMode(true);
-        }
-      }
-    );
-  });
-
-  observer.observe(document.documentElement, {
-    attributes: true,
-    attributeFilter: ["class"],
   });
 
   // پیام از popup
@@ -98,12 +147,13 @@ if (!window.__darkModeListenerAttached) {
     if (msg.action === "checkNativeDark") {
       sendResponse({ hasNativeDark: siteAlreadyHasDarkMode() });
     }
+    if (msg.action === "forceNotify") {
+      showNativeDarkModeNotification();
+    }
     return true;
   });
 }
 
 // اجرا
 loadSettings();
-
-// اجرای مجدد بعد از بارگذاری کامل
 window.addEventListener("DOMContentLoaded", loadSettings);
