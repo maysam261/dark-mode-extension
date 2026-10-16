@@ -82,30 +82,54 @@ function showNativeDarkModeNotification() {
 // ============================================
 // اعمال/حذف دارک مود
 // ============================================
-function applyDarkMode(enabled, intensity = 100, sepia = 0, showNotification = true) {
+function applyDarkMode(enabled, intensity, sepia, showNotif) {
   const html = document.documentElement;
+  const body = document.body;
+  const filterVal =
+    "invert(1) hue-rotate(180deg) brightness(" +
+    (intensity || 100) +
+    "%) sepia(" +
+    (sepia || 0) +
+    "%)";
 
   if (enabled) {
+    // کلاس روی html (برای counter-filter تصاویر)
     html.classList.add("dm-active");
-    html.style.setProperty("--dm-intensity", intensity + "%");
-    html.style.setProperty("--dm-sepia", sepia + "%");
 
-    // اگه سایت دارک مود نیتیو داره، نوتیف بده
-    if (showNotification && siteAlreadyHasDarkMode()) {
-      // صبر کن تا body آماده بشه
-      if (document.body) {
-        showNativeDarkModeNotification();
-      } else {
-        document.addEventListener("DOMContentLoaded", showNativeDarkModeNotification);
-      }
+    // فیلتر inline روی html — مطمئن‌ترین روش
+    html.style.setProperty("filter", filterVal, "important");
+    html.style.setProperty("-webkit-filter", filterVal, "important");
+    html.style.setProperty("background-color", "#ffffff", "important");
+
+    // روی body هم بذار به عنوان backup
+    if (body) {
+      body.style.setProperty("background-color", "#ffffff", "important");
+      body.style.setProperty("min-height", "100vh", "important");
+    }
+
+    // متغیرها هم برای CSS
+    html.style.setProperty("--dm-intensity", (intensity || 100) + "%");
+    html.style.setProperty("--dm-sepia", (sepia || 0) + "%");
+
+    if (showNotif && siteAlreadyHasDarkMode()) {
+      showNotification();
     }
   } else {
     html.classList.remove("dm-active");
+
+    html.style.removeProperty("filter");
+    html.style.removeProperty("-webkit-filter");
+    html.style.removeProperty("background-color");
     html.style.removeProperty("--dm-intensity");
     html.style.removeProperty("--dm-sepia");
-    // اگه نوتیف باز بود، حذفش کن
+
+    if (body) {
+      body.style.removeProperty("background-color");
+      body.style.removeProperty("min-height");
+    }
+
     const notif = document.getElementById("dm-native-notification");
-    if (notif) notif.remove();
+    if (notif && notif.parentNode) notif.parentNode.removeChild(notif);
   }
 }
 
