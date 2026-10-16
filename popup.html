@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🌙 دارک مود</h1>
+      <label class="switch">
+        <input type="checkbox" id="toggle" />
+        <span class="slider"></span>
+      </label>
+    </header>
+
+    <div class="site-info" id="siteInfo">
+      سایت فعلی: <strong id="hostname">...</strong>
+    </div>
+
+    <div class="settings" id="settings">
+      <div class="setting">
+        <label for="intensity">
+          شدت تاریکی
+          <span id="intensityVal">100%</span>
+        </label>
+        <input type="range" id="intensity" min="30" max="120" value="100" />
+      </div>
+
+      <div class="setting">
+        <label for="sepia">
+          گرمی رنگ (کاهش آبی)
+          <span id="sepiaVal">0%</span>
+        </label>
+        <input type="range" id="sepia" min="0" max="50" value="0" />
+      </div>
+    </div>
+
+    <div class="actions">
+      <button id="whitelistBtn" class="btn secondary">
+        ➕ افزودن این سایت به لیست سفید
+      </button>
+      <button id="resetBtn" class="btn danger">
+        🔄 ریست تنظیمات
+      </button>
+    </div>
+
+    <div class="whitelist" id="whitelistSection">
+      <h3>سایت‌های مستثنی</h3>
+      <ul id="whitelistItems"></ul>
+    </div>
+
+    <div class="native-warning" id="nativeWarning" style="display:none">
+      ✅ این سایت خودش دارک مود داره، نیازی به افزونه نیست.
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

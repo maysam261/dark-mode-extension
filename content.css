@@ -1,0 +1,51 @@
+/* ===== Dark Mode با استفاده از فیلترها ===== */
+
+html.dm-active {
+  background-color: #121212 !important;
+}
+
+html.dm-active {
+  filter: invert(1)
+          hue-rotate(180deg)
+          brightness(var(--dm-intensity, 100%))
+          sepia(var(--dm-sepia, 0%))
+          !important;
+  background: #fff !important;
+}
+
+/* برگرداندن تصاویر، ویدیوها و iframeها به حالت عادی */
+html.dm-active img,
+html.dm-active video,
+html.dm-active picture,
+html.dm-active canvas,
+html.dm-active svg image,
+html.dm-active iframe,
+html.dm-active embed,
+html.dm-active object,
+html.dm-active [style*="background-image"] {
+  filter: invert(1)
+          hue-rotate(180deg)
+          brightness(var(--dm-intensity, 100%))
+          sepia(var(--dm-sepia, 0%))
+          !important;
+}
+
+/* جلوگیری از فیلتر شدن اسکرول‌بار */
+html.dm-active::-webkit-scrollbar {
+  filter: none;
+}
+
+/* اسکرول‌بار تیره */
+html.dm-active ::-webkit-scrollbar {
+  background: #1e1e1e !important;
+}
+html.dm-active ::-webkit-scrollbar-thumb {
+  background: #555 !important;
+  border-radius: 4px;
+}
+
+/* transition نرم */
+html.dm-active,
+html.dm-active * {
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
