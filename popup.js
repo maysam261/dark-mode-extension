@@ -12,11 +12,17 @@ const nativeWarning = document.getElementById("nativeWarning");
 const settingsEl = document.getElementById("settings");
 
 let currentHostname = "";
+let currentTabId = null;
+let hasNativeDark = false;
 
+// ============================================
 // گرفتن اطلاعات تب فعلی
+// ============================================
 async function init() {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (!tab || !tab.url) return;
+
+  currentTabId = tab.id;
 
   try {
     const url = new URL(tab.url);
@@ -51,15 +57,19 @@ async function init() {
       action: "checkNativeDark",
     });
     if (res && res.hasNativeDark) {
+      hasNativeDark = true;
       nativeWarning.style.display = "block";
-      settingsEl.style.opacity = "0.4";
+    } else {
+      nativeWarning.style.display = "none";
     }
   } catch (e) {
-    // content script ممکنه لود نشده باشه
+    nativeWarning.style.display = "none";
   }
 }
 
+// ============================================
 // رندر لیست سفید
+// ============================================
 function renderWhitelist(list) {
   whitelistItems.innerHTML = "";
   if (list.length === 0) {
@@ -85,35 +95,52 @@ function renderWhitelist(list) {
   });
 }
 
-// اطلاع‌رسانی به تب فعلی برای بروزرسانی
+// ============================================
+// اطلاع‌رسانی به تب فعلی
+// ============================================
 async function notifyTab() {
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  if (tab) {
-    chrome.tabs.sendMessage(tab.id, { action: "toggle" }).catch(() => {});
-  }
+  if (!currentTabId) return;
+  chrome.tabs.sendMessage(currentTabId, { action: "toggle" }).catch(() => {});
 }
 
+// ============================================
 // Toggle اصلی
+// ============================================
 toggleEl.addEventListener("change", async () => {
   await chrome.storage.sync.set({ enabled: toggleEl.checked });
   notifyTab();
+
+  // اگه فعال شد و سایت نیتیو دارک مود داره، نوتیف رو دوباره نشون بده
+  if (toggleEl.checked && hasNativeDark) {
+    setTimeout(() => {
+      chrome.tabs
+        .sendMessage(currentTabId, { action: "forceNotify" })
+        .catch(() => {});
+    }, 300);
+  }
 });
 
+// ============================================
 // شدت تاریکی
+// ============================================
 intensityEl.addEventListener("input", () => {
   intensityVal.textContent = intensityEl.value + "%";
   chrome.storage.sync.set({ intensity: Number(intensityEl.value) });
   notifyTab();
 });
 
+// ============================================
 // گرمی رنگ
+// ============================================
 sepiaEl.addEventListener("input", () => {
   sepiaVal.textContent = sepiaEl.value + "%";
   chrome.storage.sync.set({ sepia: Number(sepiaEl.value) });
   notifyTab();
 });
 
+// ============================================
 // افزودن به لیست سفید
+// ============================================
 whitelistBtn.addEventListener("click", async () => {
   if (!currentHostname) return;
   const { whitelist } = await chrome.storage.sync.get({ whitelist: [] });
@@ -126,7 +153,9 @@ whitelistBtn.addEventListener("click", async () => {
   }
 });
 
+// ============================================
 // ریست
+// ============================================
 resetBtn.addEventListener("click", async () => {
   await chrome.storage.sync.set({
     enabled: false,
